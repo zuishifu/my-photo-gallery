@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的私人导航 </title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --primary-color: #00d2ff;
+            --text-color: #ffffff;
+            --hover-bg: rgba(255, 255, 255, 0.15);
+        }
+        
+        body { 
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-gradient); 
+            background-attachment: fixed;
+            color: var(--text-color); 
+            margin: 0; padding-bottom: 50px; 
+            display: flex; flex-direction: column; align-items: center; 
+            min-height: 100vh;
+        }
+        
+        /* 时钟区域 */
+        #header { 
+            text-align: center; padding: 40px 0 20px; width: 100%; 
+            background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #time { font-size: 3.8rem; font-weight: 200; margin: 0; text-shadow: 0 0 15px rgba(0,210,255,0.4); }
+        #date { font-size: 1rem; color: #aaa; margin-top: 8px; letter-spacing: 2px; }
+
+        /* 聚合搜索区域 */
+        .search-group { 
+            width: 90%; max-width: 700px; margin: 30px 0; 
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        /* 站外搜索框 */
+        .external-search {
+            display: flex; background: rgba(255,255,255,0.1);
+            padding: 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .search-select {
+            background: transparent; color: white; border: none; padding: 0 15px;
+            outline: none; cursor: pointer; border-right: 1px solid rgba(255,255,255,0.2);
+        }
+        .search-select option { background: #2c5364; }
+        .external-search input {
+            flex: 1; background: transparent; border: none; padding: 12px 15px;
+            color: white; font-size: 1rem; outline: none;
+        }
+        .search-btn {
+            background: var(--primary-color); border: none; border-radius: 8px;
+            padding: 0 20px; color: #000; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .search-btn:hover { opacity: 0.8; transform: scale(0.98); }
+
+        /* 站内过滤框 */
+        #localSearch {
+            width: 100%; padding: 10px 20px; border-radius: 10px;
+            background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.3);
+            color: #ccc; font-size: 0.9rem; outline: none;
+        }
+
+        /* 内容区 */
+        .container { width: 95%; max-width: 1200px; }
+        .category { margin-bottom: 40px; }
+        .category-title { 
+            font-size: 1.2rem; color: var(--primary-color);
+            margin-bottom: 15px; display: flex; align-items: center;
+        }
+        .category-title::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.1); margin-left: 15px; }
+        
+        .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .link-card { 
+            background: var(--card-bg); padding: 12px; text-align: center; border-radius: 10px;
+            text-decoration: none; color: var(--text-color); transition: all 0.3s;
+            font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(5px);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .link-card:hover { 
+            background: var(--hover-bg); transform: translateY(-3px); 
+            border-color: var(--primary-color); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 600px) {
+            #time { font-size: 2.8rem; }
+            .external-search { flex-wrap: wrap; }
+            .search-select { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div id="time">00:00:00</div>
+        <div id="date">Loading...</div>
+    </div>
+
+    <div class="search-group">
+        <div class="external-search">
+            <select class="search-select" id="engineSelect">
+                <option value="https://www.baidu.com/s?wd=">百度</option>
+                <option value="https://www.google.com/search?q=">Google</option>
+                <option value="https://www.bing.com/search?q=">必应</option>
+                <option value="https://github.com/search?q=">GitHub</option>
+                <option value="https://www.zhihu.com/search?q=">知乎</option>
+                <option value="https://s.weibo.com/weibo/">微博</option>
+            </select>
+            <input type="text" id="extSearchInput" placeholder="直接站外搜索..." onkeypress="if(event.keyCode==13) doExternalSearch()">
+            <button class="search-btn" onclick="doExternalSearch()">搜索</button>
+        </div>
+        
+        <input type="text" id="localSearch" placeholder="快速定位站内链接..." onkeyup="filterLinks()">
+    </div>
+
+    <div class="container" id="navContent"></div>
+
+    <script>
+        // 此处省略 100 个网站的数据（与之前相同，保持数组完整）
+        const navData = [
+            { category: "综合搜索", links: [{name:"百度", url:"https://www.baidu.com"}, {name:"Google", url:"https://www.google.com"}, {name:"必应Bing", url:"https://www.bing.com"}, {name:"开发者搜索", url:"https://kaifa.baidu.com"}, {name:"DuckDuckGo", url:"https://duckduckgo.com"}, {name:"秘塔搜索", url:"https://metaso.cn"}, {name:"搜狗", url:"https://www.sogou.com"}, {name:"360搜索", url:"https://www.so.com"}, {name:"微信搜索", url:"https://weixin.sogou.com"}, {name:"头条搜索", url:"https://www.so.com"}]},
+            { category: "常用社交", links: [{name:"知乎", url:"https://www.zhihu.com"}, {name:"微博", url:"https://weibo.com"}, {name:"Bilibili", url:"https://www.bilibili.com"}, {name:"豆瓣", url:"https://www.douban.com"}, {name:"小红书", url:"https://www.xiaohongshu.com"}, {name:"V2EX", url:"https://www.v2ex.com"}, {name:"贴吧", url:"https://tieba.baidu.com"}, {name:"QQ邮箱", url:"https://mail.qq.com"}, {name:"雪球", url:"https://xueqiu.com"}, {name:"即刻", url:"https://web.okjike.com"}]},
+            { category: "AI 实验室", links: [{name:"ChatGPT", url:"https://chat.openai.com"}, {name:"Claude", url:"https://claude.ai"}, {name:"Gemini", url:"https://gemini.google.com"}, {name:"通义千问", url:"https://tongyi.aliyun.com"}, {name:"文心一言", url:"https://yiyan.baidu.com"}, {name:"Kimi AI", url:"https://kimi.moonshot.cn"}, {name:"智谱清言", url:"https://chatglm.cn"}, {name:"Midjourney", url:"https://www.midjourney.com"}, {name:"Poe", url:"https://poe.com"}, {name:"Perplexity", url:"https://www.perplexity.ai"}]},
+            { category: "开发者/技术", links: [{name:"GitHub", url:"https://github.com"}, {name:"掘金", url:"https://juejin.cn"}, {name:"CSDN", url:"https://www.csdn.net"}, {name:"StackOverflow", url:"https://stackoverflow.com"}, {name:"Gitee", url:"https://gitee.com"}, {name:"MDN文档", url:"https://developer.mozilla.org"}, {name:"LeetCode", url:"https://leetcode.cn"}, {name:"码云", url:"https://gitee.com"}, {name:"菜鸟教程", url:"https://www.runoob.com"}, {name:"InfoQ", url:"https://www.infoq.cn"}]},
+            { category: "设计/素材", links: [{name:"花瓣网", url:"https://huaban.com"}, {name:"站酷Zcool", url:"https://www.zcool.com.cn"}, {name:"Dribbble", url:"https://dribbble.com"}, {name:"Behance", url:"https://www.behance.net"}, {name:"Canva可画", url:"https://www.canva.cn"}, {name:"Iconfont", url:"https://www.iconfont.cn"}, {name:"Unsplash", url:"https://unsplash.com"}, {name:"Pexels", url:"https://www.pexels.com"}, {name:"Freepik", url:"https://www.freepik.com"}, {name:"UI中国", url:"https://www.ui.cn"}]},
+            { category: "办公/协作", links: [{name:"飞书", url:"https://www.feishu.cn"}, {name:"Notion", url:"https://www.notion.so"}, {name:"石墨文档", url:"https://shimo.im"}, {name:"语雀", url:"https://www.yuque.com"}, {name:"腾讯文档", url:"https://docs.qq.com"}, {name:"幕布", url:"https://mubu.com"}, {name:"ProcessOn", url:"https://www.processon.com"}, {name:"123云盘", url:"https://www.123pan.com"}, {name:"百度网盘", url:"https://pan.baidu.com"}, {name:"阿里云盘", url:"https://www.alipan.com"}]},
+            { category: "学习/工具", links: [{name:"中国知网", url:"https://www.cnki.net"}, {name:"网易公开课", url:"https://open.163.com"}, {name:"Coursera", url:"https://www.coursera.org"}, {name:"多邻国", url:"https://www.duolingo.com"}, {name:"DeepL翻译", url:"https://www.deepl.com"}, {name:"谷歌翻译", url:"https://translate.google.com"}, {name:"PDF派", url:"https://www.pdfpai.com"}, {name:"草料二维码", url:"https://cli.im"}, {name:"Speedtest", url:"https://www.speedtest.net"}, {name:"TinyPNG", url:"https://tinypng.com"}]},
+            { category: "影音/娱乐", links: [{name:"腾讯视频", url:"https://v.qq.com"}, {name:"爱奇艺", url:"https://www.iqiyi.com"}, {name:"芒果TV", url:"https://www.mgtv.com"}, {name:"网易云音乐", url:"https://music.163.com"}, {name:"QQ音乐", url:"https://y.qq.com"}, {name:"汽水音乐", url:"https://qishui.douyin.com"}, {name:"YouTube", url:"https://www.youtube.com"}, {name:"Netflix", url:"https://www.netflix.com"}, {name:"Spotify", url:"https://www.spotify.com"}, {name:"虎牙直播", url:"https://www.huya.com"}]},
+            { category: "购物/资讯", links: [{name:"淘宝", url:"https://www.taobao.com"}, {name:"京东", url:"https://www.jd.com"}, {name:"拼多多", url:"https://www.pinduoduo.com"}, {name:"什么值得买", url:"https://www.smzdm.com"}, {name:"闲鱼", url:"https://www.2.taobao.com"}, {name:"澎湃新闻", url:"https://www.thepaper.cn"}, {name:"财新网", url:"https://www.caixin.com"}, {name:"界面新闻", url:"https://www.jiemian.com"}, {name:"虎嗅", url:"https://www.huxiu.com"}, {name:"36氪", url:"https://36kr.com"}]},
+            { category: "实用生活", links: [{name:"12306", url:"https://www.12306.cn"}, {name:"携程", url:"https://www.ctrip.com"}, {name:"大众点评", url:"https://www.dianping.com"}, {name:"高德地图", url:"https://www.amap.com"}, {name:"百度地图", url:"https://map.baidu.com"}, {name:"下厨房", url:"https://www.xiachufang.com"}, {name:"快递100", url:"https://www.kuaidi100.com"}, {name:"天气预报", url:"http://www.weather.com.cn"}, {name:"查名次", url:"https://www.chamingci.com"}, {name:"房天下", url:"https://www.fang.com"}]}
+        ];
+
+        // 执行站外搜索
+        function doExternalSearch() {
+            const engine = document.getElementById('engineSelect').value;
+            const keyword = document.getElementById('extSearchInput').value;
+            if (keyword.trim()) {
+                window.open(engine + encodeURIComponent(keyword), '_blank');
+            }
+        }
+
+        function renderNav() {
+            const container = document.getElementById('navContent');
+            navData.forEach(cat => {
+                let html = `<div class="category">
+                    <div class="category-title">${cat.category}</div>
+                    <div class="links-grid">`;
+                cat.links.forEach(link => {
+                    html += `<a href="${link.url}" target="_blank" class="link-card">${link.name}</a>`;
+                });
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('time').innerText = now.toLocaleTimeString('zh-CN', { hour12: false });
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            document.getElementById('date').innerText = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${days[now.getDay()]}`;
+        }
+
+        function filterLinks() {
+            let input = document.getElementById('localSearch').value.toLowerCase();
+            let cards = document.getElementsByClassName('link-card');
+            for (let card of cards) {
+                card.style.display = card.innerText.toLowerCase().includes(input) ? "block" : "none";
+            }
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        renderNav();
+    </script>
+</body>
+</html>
